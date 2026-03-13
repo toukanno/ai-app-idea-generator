@@ -46,11 +46,17 @@ node scripts/generate_idea.js
 
 `ideas/YYYY-MM-DD.md` が生成されます。同じ日に再実行するとファイルが上書きされます。
 
+## Setup
+
+1. GitHub リポジトリの **Settings** → **Secrets and variables** → **Actions** を開く
+2. **New repository secret** で `OPENROUTER_API_KEY` を登録する
+
 ## ファイル構成
 
 ```
 ├── .github/workflows/ai-app-generator.yml  # GitHub Actions ワークフロー
-├── scripts/generate_idea.js                 # アプリ案生成スクリプト
+├── scripts/generate_idea.js                 # アプリ案生成スクリプト（axios 使用）
+├── package.json                             # 依存パッケージ定義
 ├── ideas/                                   # 生成されたアプリ案の保存先
 │   └── YYYY-MM-DD.md
 └── README.md
