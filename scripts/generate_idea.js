@@ -12,21 +12,40 @@ const RETRY_DELAY_MS = 10000;
 
 const IDEA_PROMPT = `日本語で新しいAIアプリのアイデアを1つ提案してください。タイトルと概要と機能をMarkdown形式で出力してください。`;
 
-const NOTE_PROMPT = `あなたはブログライターです。以下のAIアプリ案をもとに、noteに投稿するブログ記事を書いてください。
+const NOTE_PROMPT = `あなたは日本語のブログライターです。以下のAIアプリ案をもとに、noteに投稿するブログ記事を書いてください。
 
-条件:
-- 読者に語りかける自然な日本語で書く
-- 「こんにちは」から始める導入文を入れる
-- 以下のセクションをMarkdownで含める:
-  # （アプリ名）
-  導入文（2〜3文）
-  ## 概要
-  ## 主な機能（箇条書き）
-  ## 想定ユーザー
-  ## 収益化のアイデア
-  ## まとめ（読者への呼びかけ）
-- 硬すぎず、読みやすい文体にする
-- 最後に「---」で区切り線を入れる
+必ず以下の構成で出力してください:
+
+# （アプリ名だけ。記号や装飾なし）
+
+こんにちは。（導入文を2〜3文で書く）
+
+## 概要
+
+（アプリの概要を2〜3文で）
+
+## 主な機能
+
+- （機能を3〜5個、箇条書きで）
+
+## 想定ユーザー
+
+（誰向けかを1〜2文で）
+
+## 収益化のアイデア
+
+（マネタイズ方法を1〜2文で）
+
+## まとめ
+
+（読者への呼びかけで締める。1〜2文で）
+
+ルール:
+- すべて日本語で書くこと（英語・中国語・韓国語を混ぜない）
+- 各見出しの後に必ず空行を入れること
+- 「---」は出力しないこと
+- 硬すぎず、読みやすい文体にすること
+- 余計な挨拶や署名は末尾に付けないこと
 
 以下がアプリ案です:
 
@@ -106,6 +125,17 @@ function extractTitle(md) {
   return "AIアプリ案";
 }
 
+function cleanNoteContent(raw) {
+  let text = raw.trim();
+  // 見出しの後に空行がなければ追加
+  text = text.replace(/^(#{1,4}\s+.+)$/gm, "$1\n");
+  // 重複する空行を2行まで
+  text = text.replace(/\n{3,}/g, "\n\n");
+  // AI が末尾に付けがちな --- を除去（footer で付け直す）
+  text = text.replace(/\n---[\s\S]*$/m, "").trim();
+  return text;
+}
+
 function updateNoteIndex(date, title) {
   const indexPath = "note/index.md";
   let content = "";
@@ -148,12 +178,13 @@ async function run() {
   const noteContent = await generateWithRetry(notePrompt, "note");
 
   if (noteContent) {
+    const cleaned = cleanNoteContent(noteContent);
     const footer = `\n\n---\n\n詳細版はこちら:\n${pageUrl}\n`;
     fs.mkdirSync("note", { recursive: true });
-    fs.writeFileSync(`note/${date}.md`, noteContent.trim() + footer);
+    fs.writeFileSync(`note/${date}.md`, cleaned + footer);
     console.log(`保存完了: note/${date}.md`);
 
-    const title = extractTitle(noteContent);
+    const title = extractTitle(cleaned);
     updateNoteIndex(date, title);
     console.log(`一覧更新: note/index.md`);
   } else {
