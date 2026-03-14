@@ -35,7 +35,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add ideas/ docs/ note/
+          git add ideas/ docs/
+          if [ -d note ]; then git add note/; fi
           if git diff --cached --quiet; then
             echo "変更なし、スキップ"
           else

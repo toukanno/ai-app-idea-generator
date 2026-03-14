@@ -140,8 +140,10 @@ async function run() {
   fs.writeFileSync(`ideas/${date}.md`, ideaContent);
   console.log(`保存完了: ideas/${date}.md`);
 
-  // 2. note 用の記事生成
-  console.log("\n=== note 用記事を生成 ===");
+  // 2. note 用の記事生成（レート制限回避のため少し待つ）
+  console.log("\n15秒待機（レート制限回避）...");
+  await sleep(15000);
+  console.log("=== note 用記事を生成 ===");
   const notePrompt = NOTE_PROMPT + ideaContent;
   const noteContent = await generateWithRetry(notePrompt, "note");
 
