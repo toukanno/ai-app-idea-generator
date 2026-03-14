@@ -25,6 +25,7 @@ jobs:
       - name: Generate app idea
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MODEL: "meta-llama/llama-3.3-70b-instruct:free"
         run: node scripts/generate_idea.js
 
       - name: Commit and push
