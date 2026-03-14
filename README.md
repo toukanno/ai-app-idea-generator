@@ -55,7 +55,10 @@ npm install
 1. リポジトリの **Actions** タブを開く
 2. **Daily AI App Idea Generator** を選択
 3. **Run workflow** → **Run workflow** をクリック
-4. 完了後、`ideas/YYYY-MM-DD.md` と `docs/ideas/YYYY-MM-DD.html` が生成されれば成功
+4. 完了後、以下が生成されれば成功:
+   - `ideas/YYYY-MM-DD.md` — 技術仕様寄りのアプリ案
+   - `note/YYYY-MM-DD.md` — note 投稿用のブログ記事
+   - `docs/ideas/YYYY-MM-DD.html` — GitHub Pages の記事ページ
 
 ### 5. 自動実行
 
@@ -91,6 +94,9 @@ node scripts/build_site.js
 │   └── ideas/YYYY-MM-DD.html               # 各アイデアの記事ページ
 ├── ideas/                                   # 生成されたアプリ案（Markdown）
 │   └── YYYY-MM-DD.md
+├── note/                                    # note 投稿用 Markdown
+│   ├── index.md                             # 生成済み記事の一覧
+│   └── YYYY-MM-DD.md                       # note に貼り付ける用の記事
 ├── package.json
 └── README.md
 ```
@@ -136,6 +142,29 @@ env:
 1. **Actions タブ** → 失敗したワークフローを開く
 2. **generate** ジョブ → 失敗ステップを展開
 3. エラーメッセージを確認して上の表と照合
+
+## note 運用手順
+
+毎日の Actions 実行で `note/YYYY-MM-DD.md` が自動生成されます。
+note への投稿は手動で行います。
+
+### 運用フロー
+
+1. **GitHub Actions が毎日自動実行** — アプリ案 + note 用記事が生成される
+2. **`note/YYYY-MM-DD.md` を開く** — GitHub 上で直接閲覧またはローカルで開く
+3. **note に貼り付け** — Markdown をそのままコピーして note の記事作成画面にペースト
+4. **公開** — タイトル・タグを確認して公開
+
+### note 用記事の特徴
+
+- 読者に語りかけるブログ調の文体
+- 概要・機能・想定ユーザー・収益化案・まとめ の構成
+- 末尾に GitHub Pages の詳細記事 URL を自動付与
+- `note/index.md` に生成済み記事の一覧が日付付きで蓄積
+
+### 記事一覧の確認
+
+`note/index.md` を開くと、これまでに生成された全記事の日付・タイトル・ファイルリンクが確認できます。
 
 ## 今後の拡張
 
