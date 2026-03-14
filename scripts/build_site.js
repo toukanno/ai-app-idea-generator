@@ -15,10 +15,11 @@ function mdToHtml(md) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // headings
-  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
-  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
-  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+  // headings (order matters: longest prefix first)
+  html = html.replace(/^#{4}\s+(.+)$/gm, "<h4>$1</h4>");
+  html = html.replace(/^#{3}\s+(.+)$/gm, "<h3>$1</h3>");
+  html = html.replace(/^#{2}\s+(.+)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^#{1}\s+(.+)$/gm, "<h1>$1</h1>");
 
   // bold
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
@@ -36,23 +37,26 @@ function mdToHtml(md) {
     .map((block) => {
       block = block.trim();
       if (!block) return "";
-      if (/^<[hul]/.test(block)) return block;
+      if (/^<[hulo]/.test(block)) return block;
       return `<p>${block}</p>`;
     })
     .join("\n");
-
-  // line breaks inside paragraphs
-  html = html.replace(/(<p>.*?)<br\/?>(?=.*<\/p>)/g, "$1<br>");
 
   return html;
 }
 
 // --- Extract title from markdown ---
 function extractTitle(md) {
-  const match = md.match(/^#\s+(.+)/m);
+  // Match any heading level: #, ##, ###, ####
+  const match = md.match(/^#{1,4}\s+(.+)/m);
   if (match) return match[1].replace(/[#*`]/g, "").trim();
   const first = md.split("\n").find((l) => l.trim());
   return first ? first.slice(0, 60).trim() : "無題";
+}
+
+// --- Escape HTML attribute values ---
+function escAttr(s) {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 // --- CSS ---
@@ -96,6 +100,7 @@ article { background: var(--surface); border: 1px solid var(--border); border-ra
 article h1 { font-size: 1.5rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
 article h2 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--accent); }
 article h3 { font-size: 1rem; margin-top: 1.2rem; margin-bottom: 0.4rem; }
+article h4 { font-size: 0.95rem; margin-top: 1rem; margin-bottom: 0.3rem; color: var(--muted); }
 article ul { padding-left: 1.5rem; margin: 0.5rem 0; }
 article li { margin-bottom: 0.3rem; }
 article p { margin: 0.75rem 0; }
@@ -112,19 +117,24 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top:
 `;
 
 // --- HTML shell ---
-function htmlPage({ title, description, path: pagePath, body }) {
-  const canonical = pagePath ? `${SITE_URL}/${pagePath}` : SITE_URL;
+function htmlPage({ title, description, ogType, path: pagePath, body }) {
+  const canonical = pagePath
+    ? `${SITE_URL}/${pagePath}`
+    : `${SITE_URL}/`;
+  const safeTitle = escAttr(title);
+  const safeDesc = escAttr(description);
   return `<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <meta name="description" content="${description}">
-  <meta property="og:title" content="${title}">
-  <meta property="og:description" content="${description}">
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDesc}">
+  <meta property="og:title" content="${safeTitle}">
+  <meta property="og:description" content="${safeDesc}">
   <meta property="og:url" content="${canonical}">
-  <meta property="og:type" content="article">
+  <meta property="og:type" content="${ogType || "article"}">
+  <meta property="og:site_name" content="AI App Ideas">
   <meta name="twitter:card" content="summary">
   <link rel="canonical" href="${canonical}">
   <style>${CSS}</style>
@@ -142,7 +152,6 @@ function htmlPage({ title, description, path: pagePath, body }) {
 function build() {
   fs.mkdirSync(DOCS_IDEAS_DIR, { recursive: true });
 
-  // Read all idea files
   const files = fs
     .readdirSync(IDEAS_DIR)
     .filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
@@ -161,10 +170,10 @@ function build() {
 
     entries.push({ date, title, file });
 
-    // Build individual page
     const page = htmlPage({
       title: `${title} - ${date} | AI App Ideas`,
       description: `${date} のAIアプリアイデア: ${title}`,
+      ogType: "article",
       path: `ideas/${date}.html`,
       body: `
     <a href="../" class="back">&larr; アイデア一覧に戻る</a>
@@ -175,7 +184,7 @@ function build() {
     });
 
     fs.writeFileSync(path.join(DOCS_IDEAS_DIR, `${date}.html`), page);
-    console.log(`  生成: docs/ideas/${date}.html`);
+    console.log(`  生成: docs/ideas/${date}.html — ${title}`);
   }
 
   // Build index
@@ -183,7 +192,7 @@ function build() {
     .slice(0, MAX_INDEX_ITEMS)
     .map(
       (e) =>
-        `<a href="ideas/${e.date}.html"><span class="idea-date">${e.date}</span><span class="idea-title">${e.title}</span></a>`
+        `<a href="ideas/${e.date}.html"><span class="idea-date">${e.date}</span><span class="idea-title">${escAttr(e.title)}</span></a>`
     )
     .join("\n      ");
 
@@ -200,13 +209,42 @@ function build() {
     title: SITE_TITLE,
     description:
       "AIが毎日自動生成するユニークなアプリ起業アイデアを掲載。GitHub Actions + OpenRouter で完全自動運用。",
+    ogType: "website",
     path: "",
     body: indexBody,
   });
 
   fs.writeFileSync(path.join(DOCS_DIR, "index.html"), index);
   console.log(`  生成: docs/index.html (${Math.min(entries.length, MAX_INDEX_ITEMS)} 件表示)`);
-  console.log("サイトビルド完了");
+
+  // Verify links
+  console.log("\nリンク検証:");
+  let linkErrors = 0;
+  for (const e of entries) {
+    const htmlPath = path.join(DOCS_IDEAS_DIR, `${e.date}.html`);
+    if (!fs.existsSync(htmlPath)) {
+      console.error(`  ✗ リンク切れ: ideas/${e.date}.html`);
+      linkErrors++;
+    } else {
+      console.log(`  ✓ ideas/${e.date}.html`);
+    }
+  }
+  // Check back links
+  for (const e of entries) {
+    const htmlPath = path.join(DOCS_IDEAS_DIR, `${e.date}.html`);
+    const content = fs.readFileSync(htmlPath, "utf-8");
+    if (!content.includes('href="../"')) {
+      console.error(`  ✗ 戻るリンク欠落: ideas/${e.date}.html`);
+      linkErrors++;
+    }
+  }
+  const indexContent = fs.readFileSync(path.join(DOCS_DIR, "index.html"), "utf-8");
+  if (!indexContent.includes("index.html") && !fs.existsSync(path.join(DOCS_DIR, "index.html"))) {
+    console.error("  ✗ index.html が存在しません");
+    linkErrors++;
+  }
+  console.log(linkErrors === 0 ? "リンク検証: 問題なし" : `リンク検証: ${linkErrors} 件のエラー`);
+  console.log("\nサイトビルド完了");
 }
 
 build();
