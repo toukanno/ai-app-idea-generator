@@ -1,7 +1,26 @@
-# AI App Idea Generator
+# AI App Ideas - AIアプリ起業アイデアブログ
 
-OpenRouter の無料モデルを使って、毎日1件のアプリアイデアを自動生成するシステムです。
+OpenRouter の無料モデルを使い、毎日1件のアプリアイデアを自動生成して GitHub Pages で公開するシステムです。
+
+**サイト URL**: https://toukanno.github.io/ai-app-idea-generator/
+
 デフォルトモデル: `meta-llama/llama-3.3-70b-instruct:free`（完全無料）
+
+## 仕組み
+
+```
+GitHub Actions (毎日 UTC 0:00)
+  ↓
+OpenRouter API でアプリ案を生成
+  ↓
+ideas/YYYY-MM-DD.md に保存
+  ↓
+build_site.js で HTML 化 → docs/
+  ↓
+自動 commit & push
+  ↓
+GitHub Pages で公開
+```
 
 ## セットアップ手順
 
@@ -56,10 +75,15 @@ node scripts/generate_idea.js
 
 ```
 ├── .github/workflows/ai-app-generator.yml  # GitHub Actions ワークフロー
-├── scripts/generate_idea.js                 # アプリ案生成スクリプト（axios 使用）
-├── package.json                             # 依存パッケージ定義
-├── ideas/                                   # 生成されたアプリ案の保存先
+├── scripts/
+│   ├── generate_idea.js                     # アプリ案生成スクリプト（axios 使用）
+│   └── build_site.js                        # Markdown → HTML 変換 + index 生成
+├── docs/                                    # GitHub Pages 公開ディレクトリ
+│   ├── index.html                           # アイデア一覧ページ
+│   └── ideas/YYYY-MM-DD.html               # 各アイデアの記事ページ
+├── ideas/                                   # 生成されたアプリ案（Markdown）
 │   └── YYYY-MM-DD.md
+├── package.json                             # 依存パッケージ定義
 └── README.md
 ```
 
